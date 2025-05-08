@@ -1,0 +1,2 @@
+SCREENDIMS = (512, 512)
+FPS = 30
