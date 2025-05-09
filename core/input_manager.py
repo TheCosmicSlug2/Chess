@@ -7,6 +7,7 @@ VIDEORESIZE = 2
 CTRL = 10
 F = 11
 LEFTCLICK = 12
+LEFTCLICK_RELEASE = 13
 
 class InputManager:
     def __init__(self, cst_manager):
@@ -22,7 +23,10 @@ class InputManager:
                 current_events[VIDEORESIZE] = event.size
             if event.type == pg.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    current_events[LEFTCLICK] = event.pos
+                    current_events[LEFTCLICK] = self.clamp_screen(event.pos)
+            if event.type == pg.MOUSEBUTTONUP:
+                if event.button == 1:
+                    current_events[LEFTCLICK_RELEASE] = self.clamp_screen(event.pos)
         
         desired_keys = {
             pg.K_LCTRL: CTRL,
@@ -36,3 +40,13 @@ class InputManager:
         
         
         return current_events
+
+    def clamp_screen(self, pos):
+        x, y = pos
+        x = max(0, min(x, self.cstmana.SCREENDIMS[0] - 1))
+        y = max(0, min(y, self.cstmana.SCREENDIMS[1] - 1))
+        return (x, y)
+
+    
+    def get_mouse_pos(self):
+        return self.clamp_screen(pg.mouse.get_pos())

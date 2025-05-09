@@ -1,4 +1,5 @@
 from settings import *
+from core.utils import compare_tuples
 
 class CstManager:
     def __init__(self):
@@ -18,19 +19,6 @@ class CstManager:
     def cell_height(self):
         return self.cell_dims[1]
     
-    @staticmethod
-    def compare_sizes(size1, size2) -> int:
-        """
-        -1 : size1 is smaller
-        0 : same size or one side is larger/the other is smaller
-        1 : size1 is bigger
-        """
-        if size1[0] < size2[0] or size1[1] < size2[1]:
-            return -1
-        if size1[0] > size2[0] or size1[1] > size2[1]:
-            return 1
-        return 0
-    
     def go_fullscreen(self, new_size):
         self.old_dims_mem = self.SCREENDIMS
         self.SCREENDIMS = new_size
@@ -39,8 +27,9 @@ class CstManager:
             self.SCREENDIMS[1] // 8
         )
 
+    def get_gridpos(self, pos):
+        return (pos[0] // self.cell_width, pos[1] // self.cell_height)
         
-
     def update_screen_dimensions(self, new_dims, shift=False):
         if shift:
             old_cell_dims = self.cell_dims

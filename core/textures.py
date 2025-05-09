@@ -22,5 +22,9 @@ def get_texture_dic(size, folder=DEFAULT_FOLDER):
         for key, value in names.items():
             if key in filename:
                 dic_textures[value + color] = texture
+
+    # Get "grab" texture too
+    grab_texture = pg.transform.scale(pg.image.load("rsc/textures/grab.png"), (16, 16))
+    dic_textures["grab"] = grab_texture
     return dic_textures
 

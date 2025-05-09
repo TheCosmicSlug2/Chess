@@ -18,18 +18,19 @@ def intfloat_div(nb, div):
 class DataManager:
     def __init__(self):
         self.chessboard = [
-            ["6w", "3w", None, None, None, None, "3b", "6b"],
-            ["5w", "3w", None, None, None, None, "3b", "5b"],
-            ["4w", "3w", None, None, None, None, "3b", "4b"],
-            ["2w", "3w", None, None, None, None, "3b", "2b"],
-            ["1w", "3w", None, None, None, None, "3b", "1b"],
-            ["4w", "3w", None, None, None, None, "3b", "4b"],
-            ["5w", "3w", None, None, None, None, "3b", "5b"],
-            ["6w", "3w", None, None, None, None, "3b", "6b"],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, "6b", "1b", None],
+            [None, None, None, None, None, None, "6b", None],
+            [None, None, None, None, "2b", None, None, None],
+            [None, None, None, "2w", None, None, None, None],
+            [None, "6w", None, None, None, None, None, None],
+            [None, "1w", "6w", None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
         ]
-        self.selected_piece = None
+        self.selected_piece_pos = None
         self.check_data = {"w": None, "b": None}
         self.color = None
+        self.possible_moves = []
     
     def get_at(self, gripos) -> str | None:
         return self.chessboard[gripos[1]][gripos[0]]
@@ -45,7 +46,7 @@ class DataManager:
         if value is None:
             return None
         return value[0]
-    
+
     def set_at(self, gridpos, value) -> None:
         self.chessboard[gridpos[1]][gridpos[0]] = value
 
@@ -56,6 +57,7 @@ class DataManager:
                 content = "  " if column is None else column
                 print(f"| {content} ", end="")
             print("|")
+        print("-----" * len(row) + "-")
     
     def setup_board(self, message):
         chessboard = [
@@ -71,6 +73,8 @@ class DataManager:
             self.color = "w"
         if message == "YOU_ARE_COLOR_BLACK":
             self.chessboard = list(reversed(chessboard))
+            self.chessboard[0] = list(reversed(self.chessboard[0]))
+            self.chessboard[7] = list(reversed(self.chessboard[7]))
             self.color = "b"
         self.print_board()
 
@@ -89,8 +93,6 @@ class DataManager:
         piece_color = piece[1]
         
         d_mov = (endx - startx, endy - starty)
-        if debug:
-            print(d_mov)
         if d_mov == (0, 0):
             return True
 
@@ -111,7 +113,7 @@ class DataManager:
                 mov = (vec_move[0] * cell_dst, vec_move[1] * cell_dst)
                 if self.chessboard[starty + mov[1]][startx + mov[0]]: # Check if there are pieces in the path
                     return False
-            if endcell_color[1] == piece_color: # Check if last if own piece
+            if endcell_color == piece_color: # Check if last if own piece
                 return False
             return True                
 
@@ -130,7 +132,7 @@ class DataManager:
                     return False
             if d_mov == (0, -2) and starty != 6:
                 return False
-            if d_mov == (0, -1) and self.get_at(endpos) != None:
+            if d_mov == (0, -1) and endcell_color != None:
                 return False
         if piece_type == "4" and not fast_piece_check('4'):
             return False
@@ -144,21 +146,27 @@ class DataManager:
         
         return True
 
-    def get_checkmate_data(self):
+    def set_possible_positions(self):
+        self.possible_moves = []
+        for row in range(8):
+            for column in range(8):
+                if self.check_move_validity(self.selected_piece_pos, (column, row)):
+                    self.possible_moves.append((column, row))
+
+    def get_check_data(self):
         for color in ("w", "b"):
             self.check_data[color] = self.check_for_checkmate(color)
         return self.check_data
     
-    def process_opponent_play(self, message):
+    def from_message_decode_opponent_pos(self, message):
         if message == "YOU_ARE_PLAYING":
-            return
-        print(message)
+            return None
         name, startpos, endpos = message.split("-")
 
         startpos, endpos = literal_eval(startpos), literal_eval(endpos)
         changed_startpos = (7 - startpos[0], 7 - startpos[1])
         changed_endpos = (7 - endpos[0], 7 - endpos[1])
-        self.movepiece(changed_startpos, changed_endpos)
+        return changed_startpos, changed_endpos
     
     def check_for_checkmate(self, color):
         # find king and attacking pieces
