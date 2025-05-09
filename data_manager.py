@@ -29,9 +29,22 @@ class DataManager:
         ]
         self.selected_piece = None
         self.check_data = {"w": None, "b": None}
+        self.color = None
     
     def get_at(self, gripos) -> str | None:
         return self.chessboard[gripos[1]][gripos[0]]
+
+    def get_color_at(self, gridpos):
+        value = self.get_at(gridpos)
+        if value is None:
+            return None
+        return value[1]
+    
+    def get_piece_type_at(self, gridpos):
+        value = self.get_at(gridpos)
+        if value is None:
+            return None
+        return value[0]
     
     def set_at(self, gridpos, value) -> None:
         self.chessboard[gridpos[1]][gridpos[0]] = value
@@ -44,20 +57,40 @@ class DataManager:
                 print(f"| {content} ", end="")
             print("|")
     
+    def setup_board(self, message):
+        chessboard = [
+            ["6b", "5b", "4b", "2b", "1b", "4b", "5b", "6b"],
+            ["3b" for _ in range(8)],
+            *[[None for _ in range(8)] for _ in range(4)],
+            ["3w" for _ in range(8)],
+            ["6w", "5w", "4w", "2w", "1w", "4w", "5w", "6w"],
+        ]
+
+        if message == "YOU_ARE_COLOR_WHITE":
+            self.chessboard = chessboard
+            self.color = "w"
+        if message == "YOU_ARE_COLOR_BLACK":
+            self.chessboard = list(reversed(chessboard))
+            self.color = "b"
+        self.print_board()
+
+    
     def movepiece(self, startpos, endpos):
         piece_name = self.get_at(startpos)
         self.set_at(startpos, None)
         self.set_at(endpos, piece_name)
     
-    def check_move_validity(self, startpos, endpos):
+    def check_move_validity(self, startpos, endpos, debug=False):
         startx, starty = startpos
         endx, endy = endpos
         piece = self.get_at(startpos)
-        endcell = self.get_at(endpos)
+        endcell_color = self.get_color_at(endpos)
         piece_type = piece[0]
         piece_color = piece[1]
         
         d_mov = (endx - startx, endy - starty)
+        if debug:
+            print(d_mov)
         if d_mov == (0, 0):
             return True
 
@@ -78,52 +111,34 @@ class DataManager:
                 mov = (vec_move[0] * cell_dst, vec_move[1] * cell_dst)
                 if self.chessboard[starty + mov[1]][startx + mov[0]]: # Check if there are pieces in the path
                     return False
-            if endcell is not None:
-                if endcell[1] == piece_color: # Check if last if own piece
-                    return False
+            if endcell_color[1] == piece_color: # Check if last if own piece
+                return False
             return True                
 
         if piece_type == "1":
             if d_mov not in pieces_movement["1"]:
                 return False
-            if endcell is not None:
-                if endcell[1] == piece_color: # Check ovewrites his own pieces
-                    return False
+            if endcell_color == piece_color: # Check ovewrites his own pieces
+                return False
         if piece_type == "2" and not fast_piece_check("2"):
             return False
         if piece_type == "3":
-            if piece_color == "w":
-                if d_mov not in [(1, -1), (1, 1), (2, 0), (1, 0)]:
+            if d_mov not in [(1, -1), (-1, -1), (0, -2), (0, -1)]:
+                return False
+            if d_mov in [(1, -1), (-1, -1)]:
+                if endcell_color is None or endcell_color == self.color:
                     return False
-                if d_mov in [(1, -1), (1, 1)]:
-                    if endcell is None:
-                        return False
-                    if endcell[1] != "b":
-                        return False
-                if d_mov == (2, 0) and startx != 1:
-                    return False
-                if d_mov == (1, 0) and self.get_at(endpos) != None:
-                    return False
-            if piece_color == "b":
-                if d_mov not in [(-1, -1), (-1, 1), (-2, 0), (-1, 0)]:
-                    return False
-                if d_mov in [(-1, -1), (-1, 1)]:
-                    if endcell is None:
-                        return False
-                    if endcell[1] != "w":
-                        return False
-                if d_mov == (-2, 0) and startx != 6:
-                    return False
-                if d_mov == (-1, 0) and endcell != None:
-                    return False
+            if d_mov == (0, -2) and starty != 6:
+                return False
+            if d_mov == (0, -1) and self.get_at(endpos) != None:
+                return False
         if piece_type == "4" and not fast_piece_check('4'):
             return False
         if piece_type == "5":
             if d_mov not in pieces_movement["5"]:
                 return False
-            if endcell is not None:
-                if endcell[1] == piece_color:
-                    return False
+            if endcell_color == piece_color:
+                return False
         if piece_type == "6" and not fast_piece_check("6"):
             return False
         
@@ -140,8 +155,10 @@ class DataManager:
         print(message)
         name, startpos, endpos = message.split("-")
 
-        print(startpos, endpos)
-        self.movepiece(literal_eval(startpos), literal_eval(endpos))
+        startpos, endpos = literal_eval(startpos), literal_eval(endpos)
+        changed_startpos = (7 - startpos[0], 7 - startpos[1])
+        changed_endpos = (7 - endpos[0], 7 - endpos[1])
+        self.movepiece(changed_startpos, changed_endpos)
     
     def check_for_checkmate(self, color):
         # find king and attacking pieces

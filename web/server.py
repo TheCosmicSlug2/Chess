@@ -1,81 +1,66 @@
+# serveur.py
 import socket
 import threading
-from discovery import start_discovery_server
-import pygame as pg
-import pickle  # Utilisé pour sérialiser les tuples avant de les envoyer
 
-HOST = '0.0.0.0'
-PORT = 5000
-
-otherx, othery = (0, 0)
-
-def receive_messages(conn):
-    global otherx, othery
+def discovery_responder(port=9998):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(('', port))
+    print("[Discover Server actif sur UDP]")
     while True:
         try:
-            # Réception des données
-            msg = conn.recv(1024)
-            if msg:
-                # Désérialiser le message reçu (un tuple)
-                otherx, othery = pickle.loads(msg)
-            else:
-                break
-        except Exception as e:
-            print(e)
-            break
+            data, addr = sock.recvfrom(1024)
+            if data.decode() == "DISCOVER_SERVER":
+                print(f"[Demande de {addr}]")
+                sock.sendto("SERVER_HERE".encode(), addr)
+        except:
+            continue
+
+def get_response(player):
+    while True:
+        data = player.recv(1024).decode() # Wait 
+        if data:
+            return
 
 def main():
-    start_discovery_server()
+    # Lancer le serveur UDP dans un thread séparé
+    threading.Thread(target=discovery_responder, daemon=True).start()
 
+    # Lancer le serveur TCP principal
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind((HOST, PORT))
-    server.listen(1)
-    print(f"[🟢 Serveur en attente de connexion sur le port {PORT}]")
+    server.bind(('0.0.0.0', 9999))
+    server.listen(2)
+    print("[TCP server ready on port 9999]")
+    client_list = []
 
-    conn, addr = server.accept()
-    print(f"[✅ Connecté avec le client {addr}]")
+    while len(client_list) < 2:
+        client, addr = server.accept()
+        client_list.append(client)
+        print(client_list)
+        print(f"[Connexion of {addr}]")
+        print(client.recv(1024).decode())
+        client.send("[From server : got your connection]".encode())
+    
 
-    threading.Thread(target=receive_messages, args=(conn,), daemon=True).start()
-
-    # Initialisation de pygame
-    pg.init()
-    display = pg.display.set_mode((400, 400))  # Taille de la fenêtre
-    pg.display.set_caption("Server side")
-    posx, posy = 100, 100  # Position du carré vert
-    clock = pg.time.Clock()
-    running = True
-    while running:
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                running = False
-            if event.type == pg.MOUSEBUTTONDOWN:
-                posx, posy = pg.mouse.get_pos()
-
-        keys = pg.key.get_pressed()
-        if keys[pg.K_UP]:
-            posy -= 1
-        if keys[pg.K_DOWN]:
-            posy += 1
-        if keys[pg.K_LEFT]:
-            posx -= 1
-        if keys[pg.K_RIGHT]:
-            posx += 1
-
-        # Sérialiser et envoyer les coordonnées
-        msg = pickle.dumps((posx, posy))
-        conn.send(msg)
-
-        # Dessiner les éléments
-        display.fill((255, 255, 255))  # Remplir l'écran de blanc
-        pg.draw.rect(display, (0, 255, 0), pg.Rect(posx, posy, 20, 20))  # Carré vert (mouvement local)
-        pg.draw.rect(display, (255, 0, 0), pg.Rect(otherx, othery, 20, 20))  # Carré rouge (mouvement distant)
-
-        pg.display.update()  # Mettre à jour l'écran
-        clock.tick(30)
-
-    conn.close()
-    server.close()
-    print("[🔴 Déconnecté]")
+    server_running = True
+    player1 = client_list[0]
+    player2 = client_list[1]
+    player1.send("YOU_ARE_COLOR_WHITE".encode())
+    print("I send YOU_ARE_COLOR_WHITE")
+    get_response(player1)
+    player2.send("YOU_ARE_COLOR_BLACK".encode())
+    
+    print("I send YOU_ARE_COLOR_BLACK")
+    get_response(player2)
+    player1.send("YOU_ARE_PLAYING".encode())
+    
+    print("I send YOU_ARE_PLAYING")
+    while server_running:
+        print("[Serveur] En attente du mouvement de", "Joueur 1" if player1 == client_list[0] else "Joueur 2")
+        move_data = player1.recv(1024).decode()
+        print("[Serveur] Données reçues :", move_data)
+        if move_data:
+            player1, player2 = player2, player1
+            player1.send(f"YOU_ARE_PLAYING-{move_data}".encode())
 
 if __name__ == "__main__":
     main()

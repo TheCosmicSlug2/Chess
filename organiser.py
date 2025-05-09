@@ -1,5 +1,5 @@
 from main import main
-from web.server_test import main as servermain
+from web.server import main as servermain
 import time
 import threading
 

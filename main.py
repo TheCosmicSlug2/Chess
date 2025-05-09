@@ -25,9 +25,14 @@ def main():
     while running:
         try:
             message = client.recv(1024).decode()
+            if message.startswith("YOU_ARE_COLOR"):
+                data_manager.setup_board(message)
+                client.send("AKN".encode())
+                print("I received the dataaaaaa")
             if message.startswith("YOU_ARE_PLAYING"):
                 print("I am playing")
                 data_manager.process_opponent_play(message)
+                check_pos = data_manager.get_checkmate_data()
                 is_playing = True
         except:
             pass
@@ -51,16 +56,17 @@ def main():
             pos = events[LEFTCLICK]
             gridpos = (pos[0] // cst_manager.cell_width, pos[1] // cst_manager.cell_height)
             if data_manager.selected_piece:
-                if data_manager.check_move_validity(data_manager.selected_piece, gridpos):
+                if data_manager.check_move_validity(data_manager.selected_piece, gridpos, debug=True):
                     data_manager.movepiece(data_manager.selected_piece, gridpos)
                     check_pos = data_manager.get_checkmate_data()
-                    if check_pos:
-                        print(f"color in checkmate position by {check_pos}")
-                    client.send(f"{data_manager.selected_piece}-{gridpos}".encode())
-                    print("I sent the data")
+                    if gridpos != data_manager.selected_piece:
+                        if check_pos:
+                            print(f"color in checkmate position by {check_pos}")
+                        client.send(f"{data_manager.selected_piece}-{gridpos}".encode())
+                        print("I sent the data")
+                        is_playing = False
                     data_manager.selected_piece = None
-                    is_playing = False
-            elif data_manager.get_at(gridpos) != None:
+            elif data_manager.get_color_at(gridpos) == data_manager.color:
                 data_manager.selected_piece = gridpos
         
         input_manager.last_events = events
@@ -75,3 +81,6 @@ if __name__ =="__main__":
 # Movable pieces
 # Multiplayer
 # POssibility to add very bad ai (1-2 steps ahead)
+# les blancs et les noirs sont en bas -> mirror les moves de l'autre
+# Ajotuer des sons
+# Grab les pièces
