@@ -39,7 +39,7 @@ class CstManager:
         )
         self.SCREENDIMS = (self.cell_width * 8, self.cell_height * 8)
         if shift:
-            compare_value = self.compare_sizes(old_cell_dims, self.cell_dims)
+            compare_value = compare_tuples(old_cell_dims, self.cell_dims)
             if compare_value == -1:
                 new_cell_dims = max(self.cell_width, self.cell_height)
             if compare_value == 1:

@@ -19,7 +19,7 @@ def get_response(player):
     while True:
         data = player.recv(1024).decode() # Wait 
         if data:
-            return
+            return data
 
 # Debug
 def debug_log(message):
@@ -49,6 +49,19 @@ def main():
     server_running = True
     player1 = client_list[0]
     player2 = client_list[1]
+    # Get ai convictions
+    player1.send("AI?".encode())
+    ai1 = get_response(player1)
+    print("has received p1")
+    player2.send("AI?".encode())
+    ai2 = get_response(player2)
+    print("has received p2")
+    if ai1 == "True":
+        player2.send("YOU_AI".encode())
+        get_response(player2)
+    if ai2 == "True":
+        player1.send("YOU_AI".encode())
+        get_response(player1)
     player1.send("YOU_ARE_COLOR_WHITE".encode())
     get_response(player1)
     player2.send("YOU_ARE_COLOR_BLACK".encode())

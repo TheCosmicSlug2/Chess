@@ -84,7 +84,7 @@ class DataManager:
         self.set_at(startpos, None)
         self.set_at(endpos, piece_name)
     
-    def check_move_validity(self, startpos, endpos, debug=False):
+    def check_move_validity(self, startpos, endpos, debug=False, ennemy=False):
         startx, starty = startpos
         endx, endy = endpos
         piece = self.get_at(startpos)
@@ -125,15 +125,29 @@ class DataManager:
         if piece_type == "2" and not fast_piece_check("2"):
             return False
         if piece_type == "3":
-            if d_mov not in [(1, -1), (-1, -1), (0, -2), (0, -1)]:
-                return False
-            if d_mov in [(1, -1), (-1, -1)]:
-                if endcell_color is None or endcell_color == self.color:
+            if ennemy:
+                if d_mov not in [(-1, 1), (1, 1), (0, 2), (0, 1)]:
                     return False
-            if d_mov == (0, -2) and starty != 6:
-                return False
-            if d_mov == (0, -1) and endcell_color != None:
-                return False
+                if d_mov in [(-1, 1), (1, 1)]:
+                    if endcell_color is None or endcell_color == self.color:
+                        return False
+                if d_mov == (0, 2):
+                    if starty != 1 or self.get_at((startx, starty + 1)) != None or endcell_color != None:
+                        return False
+                if d_mov == (0, 1) and endcell_color != None:
+                    return False
+            else:
+                if d_mov not in [(1, -1), (-1, -1), (0, -2), (0, -1)]:
+                    return False
+                if d_mov in [(1, -1), (-1, -1)]:
+                    if endcell_color is None or endcell_color == self.color:
+                        return False
+                if d_mov == (0, -2):
+                    if starty != 6 or self.get_at((startx, starty - 1)) != None or endcell_color != None:
+                        return False
+                if d_mov == (0, -1) and endcell_color != None:
+                    return False
+
         if piece_type == "4" and not fast_piece_check('4'):
             return False
         if piece_type == "5":
@@ -152,6 +166,14 @@ class DataManager:
             for column in range(8):
                 if self.check_move_validity(self.selected_piece_pos, (column, row)):
                     self.possible_moves.append((column, row))
+
+    def get_possible_positions(self, starting_pos, ennemy):
+        possible_moves = []
+        for row in range(8):
+            for column in range(8):
+                if self.check_move_validity(starting_pos, (column, row), ennemy=ennemy):
+                    possible_moves.append((column, row))
+        return possible_moves
 
     def get_check_data(self):
         for color in ("w", "b"):

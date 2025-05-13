@@ -3,6 +3,7 @@ from settings import FPS
 from core.textures import get_texture_dic
 from core.audio_manager import MixerPlay
 from core.utils import color_clamp, get_dtuple, add_tuples
+from widgets.widgets import *
 
 # Type Hinting
 from core.cst_manager import CstManager
@@ -32,6 +33,11 @@ class Renderer:
             "end": None,
             "dpos": None
         }
+        self.fonts = {}
+        self.menu_bg = None
+
+    def add_font(self, height):
+        self.fonts[height] = pg.font.SysFont("Times New Roman", height)
 
     def set_window_title(self, title: str):
         pg.display.set_caption(title)
@@ -75,6 +81,35 @@ class Renderer:
             "end": pos2,
             "dpos": dpos
         }
+
+    # Widgets
+    def get_widget_render(self, widget):
+        # Get main surface
+        width, height = widget.dims
+        tot_borx = 0
+        tot_borh = 0
+        outer_surface = pg.Surface(widget.dims, pg.SRCALPHA)
+        for color, border in zip(widget.colors, widget.borders):
+            width = width - 2 * border
+            height = height - 2 * border
+            tot_borx += border
+            tot_borh += border
+            inner_surface = pg.Surface((width, height), pg.SRCALPHA)
+            inner_surface.fill(color)
+            outer_surface.blit(inner_surface, (tot_borx, tot_borh))
+        if isinstance(widget, Label) or isinstance(widget, Button):
+            if widget.text_height not in self.fonts:
+                self.add_font(widget.text_height)
+            font = self.fonts[widget.text_height]
+            text_render = font.render(widget.text, False, widget.text_color, widget.text_bg_color)
+            
+            half_x = (widget.width - text_render.get_width()) / 2
+            half_y = (widget.height - text_render.get_height()) / 2
+            outer_surface.blit(text_render, (half_x, half_y))
+        if isinstance(widget, Checkbox):
+            inner_surface.fill(widget.check_color)
+            outer_surface.blit(inner_surface, (tot_borx, tot_borh))
+        return outer_surface
     
     def render_on_screen(self, datamas: DataManager, mouse_pos):
         mouse_gridpos = self.cstman.get_gridpos(mouse_pos)
@@ -170,7 +205,28 @@ class Renderer:
         else:
             pg.mouse.set_visible(True)
             pg.mouse.set_system_cursor(pg.SYSTEM_CURSOR_ARROW)
-        
+    
+
+    def get_menu_bg(self):
+        new_dims = self.cstman.SCREENDIMS[0] + 20, self.cstman.SCREENDIMS[0] + 20
+        surface = pg.Surface(new_dims)
+        cell_width = new_dims[0] // 16
+        cell_height = new_dims[1] // 16
+        for row_idx in range(16):
+            for column_idx in range(16):
+                dcenter = ((8-row_idx)**2 + (8-column_idx)**2) / 1.5
+                cell = pg.Rect(column_idx * cell_width, row_idx * cell_height, cell_width, cell_height)
+                color = (245,249,222) if (row_idx + column_idx) % 2 == 0 else (185,219,152)
+                color = color_clamp(color, -dcenter)
+                pg.draw.rect(surface, color, cell)
+        return surface
+
+    def render_menu(self, widgets):
+        if not self.menu_bg:
+            self.menu_bg = self.get_menu_bg()
+        self.DISPLAY.blit(self.menu_bg, (-10, -10))
+        for widget in widgets:
+            self.DISPLAY.blit(widget.surface, widget.pos)
     
     def update_display(self):
         pg.display.flip()
