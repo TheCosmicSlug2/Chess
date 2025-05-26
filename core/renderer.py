@@ -3,7 +3,6 @@ from settings import FPS
 from core.textures import get_texture_dic
 from core.audio_manager import MixerPlay
 from core.utils import color_clamp, get_dtuple, add_tuples
-from widgets.widgets import *
 
 # Type Hinting
 from core.cst_manager import CstManager
@@ -81,35 +80,6 @@ class Renderer:
             "end": pos2,
             "dpos": dpos
         }
-
-    # Widgets
-    def get_widget_render(self, widget):
-        # Get main surface
-        width, height = widget.dims
-        tot_borx = 0
-        tot_borh = 0
-        outer_surface = pg.Surface(widget.dims, pg.SRCALPHA)
-        for color, border in zip(widget.colors, widget.borders):
-            width = width - 2 * border
-            height = height - 2 * border
-            tot_borx += border
-            tot_borh += border
-            inner_surface = pg.Surface((width, height), pg.SRCALPHA)
-            inner_surface.fill(color)
-            outer_surface.blit(inner_surface, (tot_borx, tot_borh))
-        if isinstance(widget, Label) or isinstance(widget, Button):
-            if widget.text_height not in self.fonts:
-                self.add_font(widget.text_height)
-            font = self.fonts[widget.text_height]
-            text_render = font.render(widget.text, False, widget.text_color, widget.text_bg_color)
-            
-            half_x = (widget.width - text_render.get_width()) / 2
-            half_y = (widget.height - text_render.get_height()) / 2
-            outer_surface.blit(text_render, (half_x, half_y))
-        if isinstance(widget, Checkbox):
-            inner_surface.fill(widget.check_color)
-            outer_surface.blit(inner_surface, (tot_borx, tot_borh))
-        return outer_surface
     
     def render_on_screen(self, datamas: DataManager, mouse_pos):
         mouse_gridpos = self.cstman.get_gridpos(mouse_pos)

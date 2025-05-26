@@ -5,8 +5,18 @@ from core.input_manager import *
 import socket
 from web.server_ip_discover import discover_server
 from core.audio_manager import MixerPlay
-from widgets.widget_manager import *
 from ai.ai import Ai
+import smartfust as sf
+
+MENU_WIDGETS = {
+    0: sf.Label((96, 60), (320, 100), "Main Menu", text_height=40, colors=[(85,119,52), (115,149,82), (155,189,122), (185,189,162), (215,216,188)], borders=[5, 5, 5, 5]),
+    1: sf.Label((166, 200), (180, 50), "AI     ", text_height=30, colors=[(105,139,72), (155,189,122), (185,189,162)], borders=[3, 3, 3]),
+    2: sf.Checkbox((180, 208), (35, 35), (155,229,122), [(100, 100, 100), (220, 220, 220)], [3, 3]),
+    3: sf.Label((166, 260), (180, 50), "Timer", text_height=30, colors=[(115,139,72), (155,189,122), (185,189,162)], borders=[3, 3, 3]),
+    4: sf.Checkbox((180, 268), (35, 35), (155,229,122), [(100, 100, 100), (220, 220, 220)], [3, 3]),
+    5: sf.Button((155, 340), (200, 80), "PLAY", "quit", text_height=30, colors=[(85,119,52),(115,149,82), (155,189,122)], borders=[4, 4, 4]),
+}
+
 
 def main():
 
@@ -15,23 +25,11 @@ def main():
     data_manager = DataManager()
     renderer = Renderer(cst_manager)
     # Menu render
-    menu_shown = True
-    widget_manager = WidgetManager(MENU_WIDGETS, renderer)
-    while menu_shown:
-        mouse_pos = input_manager.get_mouse_pos()
-        events = input_manager.get_pg_events()
-        if LEFTCLICK in events:
-            return_value = widget_manager.on_click()
-            if return_value:
-                menu_shown = False
-        if QUIT in events:
-            menu_shown = False
-            return
-        widget_manager.update(mouse_pos)
-        widget_manager.update_widget_surfaces()
-        renderer.render_menu(widget_manager.widgets)
-        renderer.update_display()
-
+    menu = sf.Display(renderer.DISPLAY, title="Chess Menu")
+    menu.set_bg("chessboard", (16, 16), colors=((135,169,102), (245,246, 228)), shadow={"sign": (-2, 0), "mult": 3})
+    menu.add_widgets(MENU_WIDGETS)
+    menu.mainloop()
+    return_value = menu.get_output()
     # Debug
     def debug_log(message):
         name = "white" if data_manager.color == "w" else "black"
@@ -44,7 +42,7 @@ def main():
     print("Serveur answer :", client.recv(1024).decode())
     if client.recv(1024).decode() == "AI?":
         print("sending the data")
-        client.send(str(return_value["ai"]).encode())
+        client.send(str(return_value[2]).encode())
 
     fullscreen = False
 
